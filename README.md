@@ -1,3 +1,7 @@
+# What is it
+
+This is a simple parallel quicksort prototype that is capable to sort a large csv file that does not fit into the memory.
+
 # How to use it
 
 ```
