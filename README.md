@@ -17,6 +17,10 @@ For example
 ./parallel_quicksort sample.csv sample_out.csv "1,2" 3
 ```
 
+# Constrains
+* There's no more than one copy of this program running at a time
+* If the input file is named `input_file.csv`, there's no `[0-9]+input_file.csv` in this directory.
+
 # Basic ideas
 * Get a threadpool to do the jobs. For simplicity, I am just gonna to find a threadpool library from Github.
 * Each job read a csv file, partition the file into two, add a new job for each of the partition. After the two child jobs are finished, merge their results.

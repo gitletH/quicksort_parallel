@@ -21,7 +21,7 @@ int main (int argc, char* argv[]) {
 
     // Allocate threadpool and do work
     ctpl::thread_pool threadpool(num_threads);
-    threadpool.push(quicksort_parallel, &threadpool, in_filename, out_filename);
+    threadpool.push(quicksort_parallel, &threadpool, columns_to_sort, 1, in_filename, out_filename);
 
     return 0;
 }
