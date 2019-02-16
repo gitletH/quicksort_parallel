@@ -34,11 +34,11 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
 
   // Prepare partition files
   // small is the left branch and large is the right branch
-  const int left_node_index = 2 * node_index + 1;
+  const int left_node_index = 2 * node_index;
   const string small_part_file_name =
       std::to_string(left_node_index) + in_filename;
   std::ofstream small_partition(small_part_file_name);
-  const int right_node_index = 2 * node_index + 2;
+  const int right_node_index = 2 * node_index + 1;
   const string large_part_file_name =
       std::to_string(right_node_index) + in_filename;
   std::ofstream large_partition(large_part_file_name);
