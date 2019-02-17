@@ -1,32 +1,50 @@
 #include "quicksort.hpp"
 
 #include "CTPL/ctpl_stl.h"
+#include <algorithm>
 #include <cassert>
+#include <cstdio>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
 using std::string;
 using std::vector;
 
+// This function does three scans to the input file.
+// It is very naive, but whatever
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
                         const std::vector<int> &columns_to_sort, int node_index,
                         const std::string in_filename,
                         const std::string out_filename) {
-  // If the file is empty, no more sorting is needed to be done
+  // Do one scan to find the size of the file
+  // If the file has only zero or one row, no more sorting is needed to be done
   // This base case is very naive. But optimizting it is not in the scope of
   // this project
-  std::ifstream ifile(in_filename);
-  const bool empty_input = ifile.peek() == std::ifstream::traits_type::eof();
-  if (empty_input) {
+  int size = 0;
+  {
+    std::ifstream ifile(in_filename);
+    size = std::count(std::istreambuf_iterator<char>(ifile),
+                      std::istreambuf_iterator<char>(), '\n');
+  }
+  if (size <= 1) {
+    if (in_filename != out_filename) {
+      std::ofstream(out_filename) << std::ifstream(in_filename).rdbuf();
+    }
     return;
   }
 
-  // Choose a pivot
+  // Do another scan to choose the midpoint of the file as the pivot
   // Again, this is really naive, but whatever
   string pivot;
-  std::getline(ifile, pivot);
-  assert(!pivot.empty());
+  {
+    std::ifstream ifile(in_filename);
+    for (int i = 0; i < size / 2; ++i) {
+      std::getline(ifile, pivot);
+    }
+    assert(!pivot.empty());
+  }
 
   // Get datatype(schema) of this file
   // There's overhead here, but we don't care
@@ -43,10 +61,10 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
       std::to_string(right_node_index) + in_filename;
   std::ofstream large_partition(large_part_file_name);
 
-  // Partition the data
+  // Do the third scan to partition the data
   // x goes into large_partition if x >= pivot.
   // Otherwise, x goes into small_partition.
-  large_partition << pivot << std::endl;
+  std::ifstream ifile(in_filename);
   string line;
   while (std::getline(ifile, line)) {
     if (isRowSmaller(line, pivot, datatypes, columns_to_sort)) {
@@ -70,6 +88,8 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   std::ofstream ofile(out_filename);
   ofile << std::ifstream(large_part_file_name).rdbuf();
   ofile << std::ifstream(small_part_file_name).rdbuf();
+  std::remove(large_part_file_name.c_str());
+  std::remove(small_part_file_name.c_str());
 }
 
 // Implementations for helpers
