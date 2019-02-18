@@ -18,9 +18,11 @@ using std::vector;
 // This function does three scans to the input file.
 // It is very naive, but whatever
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
-                        const std::vector<int> &columns_to_sort, int node_index,
-                        const std::string in_filename,
+                        const std::vector<int> &columns_to_sort,
+                        long long node_index, const std::string in_filename,
                         const std::string out_filename) {
+  assert(node_index >= 0);
+
   // Do one scan to find the size of the file
   // Base case: size <= 2
   // This base case is very naive. But optimizting it is not in the scope of
@@ -169,14 +171,14 @@ bool isRowSmaller(const std::vector<std::string> &row_a,
 
   switch (datatypes[column]) {
   case DataType::STRING:
-    if (a == b)
-      break;
-    return a < b;
+    if (a != b) {
+      return a < b;
+    }
     break;
   case DataType::NUMBER:
-    if (std::stod(a) == std::stod(b))
-      break;
-    return std::stod(a) < std::stod(b);
+    if (std::stod(a) != std::stod(b)) {
+      return std::stod(a) < std::stod(b);
+    }
     break;
 
   default:

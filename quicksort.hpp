@@ -5,18 +5,14 @@
 #include <string>
 #include <vector>
 
-enum DataType
-{
-  NUMBER,
-  STRING
-};
+enum DataType { NUMBER, STRING };
 
 // Do quick sort on `in_filename` then write output to `out_filename`
 // The `node_index` indicate which node is it in the recursion tree which help
 // debugging
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
-                        const std::vector<int> &columns_to_sort, int node_index,
-                        const std::string in_filename,
+                        const std::vector<int> &columns_to_sort,
+                        long long node_index, const std::string in_filename,
                         const std::string out_filename);
 
 // Helpers
