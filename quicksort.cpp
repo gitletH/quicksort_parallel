@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -18,6 +19,7 @@ using std::vector;
 // This function does three scans to the input file.
 // It is very naive, but whatever
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
+                        MergeMetaData *merge_meta,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
                         const std::string out_filename) {
@@ -39,6 +41,7 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
     if (in_filename != out_filename) {
       std::ofstream(out_filename) << std::ifstream(in_filename).rdbuf();
     }
+    mergeResullt(merge_meta);
     return;
   }
 
@@ -46,8 +49,9 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   // Again, this is really naive, but whatever
   string pivot;
   {
+    int pivot_index = rand() % size + 1;
     std::ifstream ifile(in_filename);
-    for (int i = 0; i < size / 2; ++i) {
+    for (int i = 0; i < pivot_index; ++i) {
       std::getline(ifile, pivot);
     }
     assert(!pivot.empty());
@@ -67,6 +71,7 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
       std::swap(row_a, row_b);
     }
     std::ofstream(out_filename) << row_a << std::endl << row_b;
+    mergeResullt(merge_meta);
     return;
   }
 
@@ -96,23 +101,20 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   large_partition.close();
 
   // Push jobs into queue
-  auto job_small = threadpool->push(quicksort_parallel, threadpool,
-                                    columns_to_sort, left_node_index,
-                                    small_part_file_name, small_part_file_name);
-  auto job_big = threadpool->push(quicksort_parallel, threadpool,
-                                  columns_to_sort, right_node_index,
-                                  large_part_file_name, large_part_file_name);
+  MergeMetaData *new_merge_meta = new MergeMetaData();
+  new_merge_meta->out_filename = out_filename;
+  new_merge_meta->small_filename = small_part_file_name;
+  new_merge_meta->large_filename = large_part_file_name;
+  threadpool->push(quicksort_parallel, threadpool, new_merge_meta,
+                   columns_to_sort, left_node_index, small_part_file_name,
+                   small_part_file_name);
+  threadpool->push(quicksort_parallel, threadpool, new_merge_meta,
+                   columns_to_sort, right_node_index, large_part_file_name,
+                   large_part_file_name);
 
-  // Wait for child to finish and merge results
-  job_small.get();
-  job_big.get();
-  std::ofstream ofile(out_filename);
-  ofile << std::ifstream(small_part_file_name).rdbuf();
-  ofile << std::ifstream(large_part_file_name).rdbuf();
-#if !DEBUG
-  std::remove(large_part_file_name.c_str());
-  std::remove(small_part_file_name.c_str());
-#endif
+  // This node is done with its job, let try to merge
+  mergeResullt(merge_meta);
+  return;
 }
 
 // Implementations for helpers
@@ -186,4 +188,26 @@ bool isRowSmaller(const std::vector<std::string> &row_a,
     break;
   }
   return isRowSmaller(row_a, row_b, datatypes, columns_to_sort, index + 1);
+}
+
+void mergeResullt(MergeMetaData *meta) {
+  if (meta == nullptr) {
+    return;
+  }
+  std::lock_guard<std::mutex>(meta->mtx);
+  meta->cnt++;
+  std::cout << meta->large_filename << ' ' << meta->cnt << std::endl;
+  if (meta->cnt < 2) {
+    return;
+  }
+
+  std::ofstream ofile(meta->out_filename);
+  ofile << std::ifstream(meta->small_filename).rdbuf();
+  ofile << std::ifstream(meta->large_filename).rdbuf();
+#if !DEBUG
+  std::remove(meta->small_filename.c_str());
+  std::remove(meta->large_filename.c_str());
+#endif
+  delete meta;
+  return;
 }

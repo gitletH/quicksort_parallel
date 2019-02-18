@@ -2,15 +2,30 @@
 #define QUICKSORT_HPP
 
 #include "CTPL/ctpl_stl.h"
+#include <mutex>
 #include <string>
 #include <vector>
 
-enum DataType { NUMBER, STRING };
+enum DataType
+{
+  NUMBER,
+  STRING
+};
+
+// Contains the metadata for merging
+struct MergeMetaData
+{
+  std::mutex mtx;
+  int cnt = 0;
+  std::string small_filename;
+  std::string large_filename;
+  std::string out_filename;
+};
 
 // Do quick sort on `in_filename` then write output to `out_filename`
 // The `node_index` indicate which node is it in the recursion tree which help
 // debugging
-void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
+void quicksort_parallel(int id, ctpl::thread_pool *threadpool, MergeMetaData *merge_meta,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
                         const std::string out_filename);
@@ -27,5 +42,9 @@ bool isRowSmaller(const std::vector<std::string> &row_a,
 bool isRowSmaller(const std::string &row_a, const std::string &row_b,
                   const std::vector<DataType> datatypes,
                   const std::vector<int> &columns_to_sort);
+// Merge result when ready
+// It is being called in the child branch, and each call increment meta->cnt
+// Merge when cnt == 2
+void mergeResullt(MergeMetaData *meta);
 
 #endif // QUICKSORT_HPP
