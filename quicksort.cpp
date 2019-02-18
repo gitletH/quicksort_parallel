@@ -5,10 +5,13 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <ext/stdio_filebuf.h>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 using std::string;
@@ -19,7 +22,7 @@ using std::vector;
 // This function does three scans to the input file.
 // It is very naive, but whatever
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
-                        MergeMetaData *merge_meta,
+                        std::shared_ptr<MergeMetaData> merge_meta,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
                         const std::string out_filename) {
@@ -102,7 +105,8 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   large_partition.close();
 
   // Push jobs into queue
-  MergeMetaData *new_merge_meta = new MergeMetaData();
+  std::shared_ptr<MergeMetaData> new_merge_meta =
+      std::make_shared<MergeMetaData>();
   new_merge_meta->out_filename = out_filename;
   new_merge_meta->small_filename = small_part_file_name;
   new_merge_meta->large_filename = large_part_file_name;
@@ -189,7 +193,7 @@ bool isRowSmaller(const std::vector<std::string> &row_a,
   return isRowSmaller(row_a, row_b, datatypes, columns_to_sort, index + 1);
 }
 
-void mergeResullt(MergeMetaData *meta) {
+void mergeResullt(std::shared_ptr<MergeMetaData> meta) {
   if (meta == nullptr) {
     return;
   }
@@ -200,19 +204,24 @@ void mergeResullt(MergeMetaData *meta) {
     return;
   }
 
+#if DEBUG
+  std::cout << "merging " << meta->small_filename << " and "
+            << meta->large_filename << " to " << meta->out_filename
+            << std::endl;
+#endif
   {
-    std::cout << "merging " << meta->small_filename << " and "
-              << meta->large_filename << " to " << meta->out_filename
-              << std::endl;
-    std::ofstream ofile(meta->out_filename);
-    ofile << std::ifstream(meta->small_filename).rdbuf();
-    ofile << std::ifstream(meta->large_filename).rdbuf();
+    std::ofstream(meta->out_filename)
+        << std::ifstream(meta->small_filename).rdbuf() << std::flush;
   }
+  {
+    std::ofstream(meta->out_filename, std::ios_base::app)
+        << std::ifstream(meta->large_filename).rdbuf() << std::flush;
+  }
+
 #if !DEBUG
   std::remove(meta->small_filename.c_str());
   std::remove(meta->large_filename.c_str());
 #endif
   mergeResullt(meta->parent);
-  delete meta;
   return;
 }

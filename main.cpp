@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -19,12 +20,13 @@ int main(int argc, char *argv[]) {
   std::transform(temp.begin(), temp.end(), std::back_inserter(columns_to_sort),
                  [](const string &str) -> int { return std::stoi(str); });
   const int num_threads = std::stoi(argv[4]);
+  srand(0);
 
   // Allocate threadpool and do work
   ctpl::thread_pool threadpool(num_threads);
   threadpool
-      .push(quicksort_parallel, &threadpool, nullptr, columns_to_sort, 1,
-            in_filename, out_filename)
+      .push(quicksort_parallel, &threadpool, std::shared_ptr<MergeMetaData>(),
+            columns_to_sort, 1, in_filename, out_filename)
       .get();
 
   return 0;
