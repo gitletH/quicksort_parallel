@@ -9,8 +9,7 @@
 using std::string;
 using std::vector;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   // Parse input arguments
   assert(argc == 5);
   const string in_filename(argv[1]);
@@ -24,8 +23,8 @@ int main(int argc, char *argv[])
   // Allocate threadpool and do work
   ctpl::thread_pool threadpool(num_threads);
   threadpool
-      .push(quicksort_parallel, &threadpool, nullptr, columns_to_sort, 1, in_filename,
-            out_filename)
+      .push(quicksort_parallel, &threadpool, nullptr, columns_to_sort, 1,
+            in_filename, out_filename)
       .get();
 
   return 0;

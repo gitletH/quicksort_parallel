@@ -6,26 +6,24 @@
 #include <string>
 #include <vector>
 
-enum DataType
-{
-  NUMBER,
-  STRING
-};
+enum DataType { NUMBER, STRING };
 
 // Contains the metadata for merging
-struct MergeMetaData
-{
+// Each is a node in the merging tree
+struct MergeMetaData {
   std::mutex mtx;
   int cnt = 0;
   std::string small_filename;
   std::string large_filename;
   std::string out_filename;
+  MergeMetaData *parent = nullptr;
 };
 
 // Do quick sort on `in_filename` then write output to `out_filename`
 // The `node_index` indicate which node is it in the recursion tree which help
 // debugging
-void quicksort_parallel(int id, ctpl::thread_pool *threadpool, MergeMetaData *merge_meta,
+void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
+                        MergeMetaData *merge_meta,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
                         const std::string out_filename);

@@ -14,7 +14,7 @@
 using std::string;
 using std::vector;
 
-#define DEBUG 0
+#define DEBUG 1
 
 // This function does three scans to the input file.
 // It is very naive, but whatever
@@ -29,6 +29,7 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   // Base case: size <= 2
   // This base case is very naive. But optimizting it is not in the scope of
   // this project
+  // TODO: clean up base case by using in-memory sort
   int size = 0;
   {
     std::ifstream ifile(in_filename);
@@ -105,15 +106,13 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   new_merge_meta->out_filename = out_filename;
   new_merge_meta->small_filename = small_part_file_name;
   new_merge_meta->large_filename = large_part_file_name;
+  new_merge_meta->parent = merge_meta;
   threadpool->push(quicksort_parallel, threadpool, new_merge_meta,
                    columns_to_sort, left_node_index, small_part_file_name,
                    small_part_file_name);
   threadpool->push(quicksort_parallel, threadpool, new_merge_meta,
                    columns_to_sort, right_node_index, large_part_file_name,
                    large_part_file_name);
-
-  // This node is done with its job, let try to merge
-  mergeResullt(merge_meta);
   return;
 }
 
@@ -196,18 +195,24 @@ void mergeResullt(MergeMetaData *meta) {
   }
   std::lock_guard<std::mutex>(meta->mtx);
   meta->cnt++;
-  std::cout << meta->large_filename << ' ' << meta->cnt << std::endl;
+  std::cout << meta->out_filename << ' ' << meta->cnt << std::endl;
   if (meta->cnt < 2) {
     return;
   }
 
-  std::ofstream ofile(meta->out_filename);
-  ofile << std::ifstream(meta->small_filename).rdbuf();
-  ofile << std::ifstream(meta->large_filename).rdbuf();
+  {
+    std::cout << "merging " << meta->small_filename << " and "
+              << meta->large_filename << " to " << meta->out_filename
+              << std::endl;
+    std::ofstream ofile(meta->out_filename);
+    ofile << std::ifstream(meta->small_filename).rdbuf();
+    ofile << std::ifstream(meta->large_filename).rdbuf();
+  }
 #if !DEBUG
   std::remove(meta->small_filename.c_str());
   std::remove(meta->large_filename.c_str());
 #endif
+  mergeResullt(meta->parent);
   delete meta;
   return;
 }
