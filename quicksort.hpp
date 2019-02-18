@@ -5,7 +5,11 @@
 #include <string>
 #include <vector>
 
-enum DataType { NUMBER, STRING };
+enum DataType
+{
+  NUMBER,
+  STRING
+};
 
 // Do quick sort on `in_filename` then write output to `out_filename`
 // The `node_index` indicate which node is it in the recursion tree which help
@@ -20,6 +24,10 @@ std::vector<std::string> split_string_by_comma(const std::string &str);
 // Get data type of a row
 std::vector<DataType> get_datatypes(const std::string &row);
 // Return true if `row_a` is smaller than `row_b`
+bool isRowSmaller(const std::vector<std::string> &row_a,
+                  const std::vector<std::string> &row_b,
+                  const std::vector<DataType> datatypes,
+                  const std::vector<int> &columns_to_sort, int index = 0);
 bool isRowSmaller(const std::string &row_a, const std::string &row_b,
                   const std::vector<DataType> datatypes,
                   const std::vector<int> &columns_to_sort);

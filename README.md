@@ -20,6 +20,7 @@ For example
 # Constrains
 * There's no more than one copy of this program running at a time
 * If the input file is named `input_file.csv`, there's no `[0-9]+input_file.csv` in this directory.
+* There's no NULL is the csv
 
 # Basic ideas
 * Get a threadpool to do the jobs. For simplicity, I am just gonna to find a threadpool library from Github.

@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -97,21 +98,70 @@ std::vector<std::string> split_string_by_comma(const string &str) {
   vector<string> rtn;
   string temp;
   for (const char &c : str) {
-    if (c != ',' || c != ' ') {
+    if (c != ',' && c != ' ') {
       temp += c;
     } else {
-      if (!temp.empty()) {
-        rtn.push_back(temp);
-      }
+      rtn.push_back(temp);
+      temp = "";
+    }
+  }
+  if (!temp.empty()) {
+    rtn.push_back(temp);
+  }
+  return rtn;
+}
+
+std::vector<DataType> get_datatypes(const std::string &row) {
+  std::vector<DataType> rtn;
+  for (const string &str : split_string_by_comma(row)) {
+    assert(!str.empty());
+    char c = str[0];
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+      rtn.push_back(DataType::STRING);
+    } else {
+      rtn.push_back(DataType::NUMBER);
     }
   }
   return rtn;
 }
 
-std::vector<DataType> get_datatypes(const std::string &row) { return {}; }
-
 bool isRowSmaller(const std::string &row_a, const std::string &row_b,
                   const std::vector<DataType> datatypes,
                   const std::vector<int> &columns_to_sort) {
-  return row_a < row_b;
+  return isRowSmaller(split_string_by_comma(row_a),
+                      split_string_by_comma(row_b), datatypes, columns_to_sort);
+}
+
+bool isRowSmaller(const std::vector<std::string> &row_a,
+                  const std::vector<std::string> &row_b,
+                  const std::vector<DataType> datatypes,
+                  const std::vector<int> &columns_to_sort, int index) {
+  if (index == columns_to_sort.size()) {
+    return false;
+  }
+  assert(row_a.size() == row_b.size());
+  assert(row_a.size() == datatypes.size());
+  assert(index >= 0 && index < columns_to_sort.size());
+
+  const int column = columns_to_sort[index];
+  string a = row_a[column];
+  string b = row_b[column];
+
+  switch (datatypes[column]) {
+  case DataType::STRING:
+    if (a == b)
+      break;
+    return a < b;
+    break;
+  case DataType::NUMBER:
+    if (std::stod(a) == std::stod(b))
+      break;
+    return std::stod(a) < std::stod(b);
+    break;
+
+  default:
+    assert(false);
+    break;
+  }
+  return isRowSmaller(row_a, row_b, datatypes, columns_to_sort, index + 1);
 }
