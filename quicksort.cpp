@@ -13,6 +13,8 @@
 using std::string;
 using std::vector;
 
+#define DEBUG 1
+
 // This function does three scans to the input file.
 // It is very naive, but whatever
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
@@ -54,12 +56,10 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   // Prepare partition files
   // small is the left branch and large is the right branch
   const int left_node_index = 2 * node_index;
-  const string small_part_file_name =
-      std::to_string(left_node_index) + in_filename;
+  const string small_part_file_name = std::to_string(left_node_index) + ".tmp";
   std::ofstream small_partition(small_part_file_name);
   const int right_node_index = 2 * node_index + 1;
-  const string large_part_file_name =
-      std::to_string(right_node_index) + in_filename;
+  const string large_part_file_name = std::to_string(right_node_index) + ".tmp";
   std::ofstream large_partition(large_part_file_name);
 
   // Do the third scan to partition the data
@@ -79,18 +79,23 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   large_partition.close();
 
   // Push jobs into queue
-  threadpool->push(quicksort_parallel, threadpool, columns_to_sort,
-                   left_node_index, small_part_file_name, small_part_file_name);
-  threadpool->push(quicksort_parallel, threadpool, columns_to_sort,
-                   right_node_index, large_part_file_name,
-                   large_part_file_name);
+  auto job_small = threadpool->push(quicksort_parallel, threadpool,
+                                    columns_to_sort, left_node_index,
+                                    small_part_file_name, small_part_file_name);
+  auto job_big = threadpool->push(quicksort_parallel, threadpool,
+                                  columns_to_sort, right_node_index,
+                                  large_part_file_name, large_part_file_name);
 
-  // Merge results
+  // Wait for child to finish and merge results
+  job_small.get();
+  job_big.get();
   std::ofstream ofile(out_filename);
-  ofile << std::ifstream(large_part_file_name).rdbuf();
   ofile << std::ifstream(small_part_file_name).rdbuf();
+  ofile << std::ifstream(large_part_file_name).rdbuf();
+#if !DEBUG
   std::remove(large_part_file_name.c_str());
   std::remove(small_part_file_name.c_str());
+#endif
 }
 
 // Implementations for helpers
