@@ -13,7 +13,7 @@
 using std::string;
 using std::vector;
 
-#define DEBUG 1
+#define DEBUG 0
 
 // This function does three scans to the input file.
 // It is very naive, but whatever
@@ -22,14 +22,16 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
                         const std::string in_filename,
                         const std::string out_filename) {
   // Do one scan to find the size of the file
-  // If the file has only zero or one row, no more sorting is needed to be done
+  // Base case: size <= 2
   // This base case is very naive. But optimizting it is not in the scope of
   // this project
   int size = 0;
   {
     std::ifstream ifile(in_filename);
-    size = std::count(std::istreambuf_iterator<char>(ifile),
-                      std::istreambuf_iterator<char>(), '\n');
+    string line;
+    while (std::getline(ifile, line)) {
+      size++;
+    }
   }
   if (size <= 1) {
     if (in_filename != out_filename) {
@@ -52,6 +54,19 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   // Get datatype(schema) of this file
   // There's overhead here, but we don't care
   const std::vector<DataType> datatypes = get_datatypes(pivot);
+
+  // Do some minmal sorting for the base case
+  if (size == 2) {
+    std::ifstream ifile(in_filename);
+    string row_a, row_b;
+    std::getline(ifile, row_a);
+    std::getline(ifile, row_b);
+    if (isRowSmaller(row_b, row_a, datatypes, columns_to_sort)) {
+      std::swap(row_a, row_b);
+    }
+    std::ofstream(out_filename) << row_a << std::endl << row_b;
+    return;
+  }
 
   // Prepare partition files
   // small is the left branch and large is the right branch

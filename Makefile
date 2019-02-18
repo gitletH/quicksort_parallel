@@ -11,4 +11,4 @@ quicksort.o: quicksort.cpp quicksort.hpp
 
 
 clean:
-	rm *.o parallel_quicksort*
+	rm *.o parallel_quicksort* *.tmp *_out.csv
