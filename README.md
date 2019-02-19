@@ -20,7 +20,7 @@ Where max_row is the number of rows can be fitted into the memory per thread. ma
 
 For example
 ```
-./parallel_quicksort rankings.csv small_out.csv "1,2" 3 10000
+./parallel_quicksort rankings.csv rankings_out.csv "1,2" 3 10000
 ```
 
 # Dependencies
