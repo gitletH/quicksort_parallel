@@ -18,8 +18,8 @@ using std::vector;
 
 #define DEBUG 0
 
-// This function does three scans to the input file.
-// It is very naive, but whatever
+// This function does THREE passes to scan the input file.
+// It is very slow and naive, but whatever
 void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
                         std::shared_ptr<MergeMetaData> merge_meta,
                         const std::vector<int> &columns_to_sort,
