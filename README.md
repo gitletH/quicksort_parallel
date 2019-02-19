@@ -23,11 +23,15 @@ For example
 ./parallel_quicksort rankings.csv small_out.csv "1,2" 3 10000
 ```
 
+# Dependencies
+It relies on libuuid on generating random filenames. To install libuuid, do `sudo apt install uuid-dev`
 
 # Constrains
 * There's no more than one copy of this program running at a time
-* If the input file is named `input_file.csv`, there's no `[0-9]+input_file.csv` in this directory.
-* There's no NULL is the csv
+* There's no NULL, two consecutive commas, or whitespaces in the csv
+
+# Supported OS
+* Tested on Ubuntu 18.04
 
 # Basic ideas
 * Get a threadpool to do the jobs. For simplicity, I am just gonna to find a threadpool library from Github.
