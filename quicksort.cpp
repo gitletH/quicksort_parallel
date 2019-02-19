@@ -188,8 +188,8 @@ bool isRowSmaller(const std::vector<std::string> &row_a,
   assert(index >= 0 && index < columns_to_sort.size());
 
   const int column = columns_to_sort[index];
-  string a = row_a.at(Column);
-  string b = row_b.at(Column);
+  string a = row_a.at(column);
+  string b = row_b.at(column);
 
   switch (datatypes[column]) {
   case DataType::STRING:
