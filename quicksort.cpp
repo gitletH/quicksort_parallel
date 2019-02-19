@@ -10,12 +10,13 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <uuid/uuid.h>
 #include <vector>
 
 using std::string;
 using std::vector;
 
-#define DEBUG 1
+#define DEBUG 0
 
 // This function does three scans to the input file.
 // It is very naive, but whatever
@@ -24,7 +25,9 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
                         const std::string out_filename, int max_row) {
+#if DEBUG
   assert(node_index >= 0);
+#endif
 
   // Do one scan to find the size of the file
   // Base case: size <= max_row
@@ -69,10 +72,15 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   // Prepare partition files
   // small is the left branch and large is the right branch
   const int left_node_index = 2 * node_index;
-  const string small_part_file_name = std::to_string(left_node_index) + ".tmp";
-  std::ofstream small_partition(small_part_file_name);
   const int right_node_index = 2 * node_index + 1;
+#if DEBUG
+  const string small_part_file_name = std::to_string(left_node_index) + ".tmp";
   const string large_part_file_name = std::to_string(right_node_index) + ".tmp";
+#else
+  const string small_part_file_name = generateUUID() + ".tmp";
+  const string large_part_file_name = generateUUID() + ".tmp";
+#endif
+  std::ofstream small_partition(small_part_file_name);
   std::ofstream large_partition(large_part_file_name);
 
   // Do the third scan to partition the data
@@ -180,8 +188,8 @@ bool isRowSmaller(const std::vector<std::string> &row_a,
   assert(index >= 0 && index < columns_to_sort.size());
 
   const int column = columns_to_sort[index];
-  string a = row_a[column];
-  string b = row_b[column];
+  string a = row_a.at(Column);
+  string b = row_b.at(Column);
 
   switch (datatypes[column]) {
   case DataType::STRING:
@@ -208,7 +216,6 @@ void mergeResullt(std::shared_ptr<MergeMetaData> meta) {
   }
   std::lock_guard<std::mutex>(meta->mtx);
   meta->cnt++;
-  std::cout << meta->out_filename << ' ' << meta->cnt << std::endl;
   if (meta->cnt < 2) {
     return;
   }
@@ -233,4 +240,12 @@ void mergeResullt(std::shared_ptr<MergeMetaData> meta) {
 #endif
   mergeResullt(meta->parent);
   return;
+}
+
+std::string generateUUID() {
+  uuid_t uuid;
+  char str[36];
+  uuid_generate(uuid);
+  uuid_unparse(uuid, str);
+  return string(str);
 }

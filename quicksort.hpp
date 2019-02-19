@@ -7,11 +7,16 @@
 #include <string>
 #include <vector>
 
-enum DataType { NUMBER, STRING };
+enum DataType
+{
+  NUMBER,
+  STRING
+};
 
 // Contains the metadata for merging
 // Each is a node in the merging tree
-struct MergeMetaData {
+struct MergeMetaData
+{
   std::mutex mtx;
   int cnt = 0;
   std::string small_filename;
@@ -50,5 +55,6 @@ bool isRowSmaller(const std::string &row_a, const std::string &row_b,
 // It is being called in the child branch, and each call increment meta->cnt
 // Merge when cnt == 2
 void mergeResullt(std::shared_ptr<MergeMetaData> meta);
-
+// Generate a UUID which make sure no duplicate tmp files
+std::string generateUUID();
 #endif // QUICKSORT_HPP
