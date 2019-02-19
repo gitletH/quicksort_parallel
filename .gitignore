@@ -1,4 +1,3 @@
-rankings.csv
 *.o
 parallel_quicksort*
 *out.csv
