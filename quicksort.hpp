@@ -7,16 +7,11 @@
 #include <string>
 #include <vector>
 
-enum DataType
-{
-  NUMBER,
-  STRING
-};
+enum DataType { NUMBER, STRING };
 
 // Contains the metadata for merging
 // Each is a node in the merging tree
-struct MergeMetaData
-{
+struct MergeMetaData {
   std::mutex mtx;
   int cnt = 0;
   std::string small_filename;
@@ -32,19 +27,24 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
                         std::shared_ptr<MergeMetaData> merge_meta,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
-                        const std::string out_filename);
+                        const std::string out_filename, int max_row);
 
 // Helpers
+// Same as above but do so in menory and not parallel using std::sort
+void sort_in_memory(const std::string &in_filename,
+                    const std::string &out_filename,
+                    const std::vector<int> &columns_to_sort);
+// Split string by comma
 std::vector<std::string> split_string_by_comma(const std::string &str);
 // Get data type of a row
 std::vector<DataType> get_datatypes(const std::string &row);
 // Return true if `row_a` is smaller than `row_b`
 bool isRowSmaller(const std::vector<std::string> &row_a,
                   const std::vector<std::string> &row_b,
-                  const std::vector<DataType> datatypes,
+                  const std::vector<DataType> &datatypes,
                   const std::vector<int> &columns_to_sort, int index = 0);
 bool isRowSmaller(const std::string &row_a, const std::string &row_b,
-                  const std::vector<DataType> datatypes,
+                  const std::vector<DataType> &datatypes,
                   const std::vector<int> &columns_to_sort);
 // Merge result when ready
 // It is being called in the child branch, and each call increment meta->cnt

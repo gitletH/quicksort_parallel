@@ -8,8 +8,10 @@ This is a simple parallel quicksort prototype that is capable to sort a large cs
 git clone --recursive https://github.com/gitletH/quicksort_parallel.git
 cd quicksort_parallel
 make
-./parallel_quicksort <input csv> <output csv> <columns to be sorted> <number of threads>
+./parallel_quicksort <input_csv> <output_csv> <columns_to_be_sorted> <number_of_threads> [<max_row>]
 ```
+
+Where max_row is the number of rows can be fitted into the memory per thread. max_row is default to 2 if not specified. Please make it large when sorting large files otherwise the performance will suffer.
 
 For example
 

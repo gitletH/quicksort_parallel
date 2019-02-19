@@ -5,13 +5,11 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
-#include <ext/stdio_filebuf.h>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <memory>
 #include <string>
-#include <unistd.h>
 #include <vector>
 
 using std::string;
@@ -25,14 +23,12 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
                         std::shared_ptr<MergeMetaData> merge_meta,
                         const std::vector<int> &columns_to_sort,
                         long long node_index, const std::string in_filename,
-                        const std::string out_filename) {
+                        const std::string out_filename, int max_row) {
   assert(node_index >= 0);
 
   // Do one scan to find the size of the file
-  // Base case: size <= 2
-  // This base case is very naive. But optimizting it is not in the scope of
-  // this project
-  // TODO: clean up base case by using in-memory sort
+  // Base case: size <= max_row
+  // Sort file in-memory using std::sort for simplicity
   int size = 0;
   {
     std::ifstream ifile(in_filename);
@@ -41,9 +37,14 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
       size++;
     }
   }
-  if (size <= 1) {
-    if (in_filename != out_filename) {
-      std::ofstream(out_filename) << std::ifstream(in_filename).rdbuf();
+
+  if (size <= max_row) {
+    if (size <= 1) {
+      if (in_filename != out_filename) {
+        std::ofstream(out_filename) << std::ifstream(in_filename).rdbuf();
+      }
+    } else {
+      sort_in_memory(in_filename, out_filename, columns_to_sort);
     }
     mergeResullt(merge_meta);
     return;
@@ -64,20 +65,6 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   // Get datatype(schema) of this file
   // There's overhead here, but we don't care
   const std::vector<DataType> datatypes = get_datatypes(pivot);
-
-  // Do some minmal sorting for the base case
-  if (size == 2) {
-    std::ifstream ifile(in_filename);
-    string row_a, row_b;
-    std::getline(ifile, row_a);
-    std::getline(ifile, row_b);
-    if (isRowSmaller(row_b, row_a, datatypes, columns_to_sort)) {
-      std::swap(row_a, row_b);
-    }
-    std::ofstream(out_filename) << row_a << std::endl << row_b;
-    mergeResullt(merge_meta);
-    return;
-  }
 
   // Prepare partition files
   // small is the left branch and large is the right branch
@@ -113,14 +100,36 @@ void quicksort_parallel(int id, ctpl::thread_pool *threadpool,
   new_merge_meta->parent = merge_meta;
   threadpool->push(quicksort_parallel, threadpool, new_merge_meta,
                    columns_to_sort, left_node_index, small_part_file_name,
-                   small_part_file_name);
+                   small_part_file_name, max_row);
   threadpool->push(quicksort_parallel, threadpool, new_merge_meta,
                    columns_to_sort, right_node_index, large_part_file_name,
-                   large_part_file_name);
+                   large_part_file_name, max_row);
   return;
 }
 
 // Implementations for helpers
+void sort_in_memory(const std::string &in_filename,
+                    const std::string &out_filename,
+                    const std::vector<int> &columns_to_sort) {
+  std::vector<string> rows;
+  std::ifstream ifile(in_filename);
+  for (string row; std::getline(ifile, row);) {
+    rows.push_back(row);
+  }
+  assert(!rows.empty());
+  const std::vector<DataType> datatypes = get_datatypes(rows[0]);
+
+  std::sort(rows.begin(), rows.end(),
+            [&columns_to_sort, &datatypes](const string &a, const string &b) {
+              return isRowSmaller(a, b, datatypes, columns_to_sort);
+            });
+
+  std::ofstream ofile(out_filename);
+  for (const string &row : rows) {
+    ofile << row << std::endl;
+  }
+}
+
 std::vector<std::string> split_string_by_comma(const string &str) {
   vector<string> rtn;
   string temp;
@@ -153,7 +162,7 @@ std::vector<DataType> get_datatypes(const std::string &row) {
 }
 
 bool isRowSmaller(const std::string &row_a, const std::string &row_b,
-                  const std::vector<DataType> datatypes,
+                  const std::vector<DataType> &datatypes,
                   const std::vector<int> &columns_to_sort) {
   return isRowSmaller(split_string_by_comma(row_a),
                       split_string_by_comma(row_b), datatypes, columns_to_sort);
@@ -161,7 +170,7 @@ bool isRowSmaller(const std::string &row_a, const std::string &row_b,
 
 bool isRowSmaller(const std::vector<std::string> &row_a,
                   const std::vector<std::string> &row_b,
-                  const std::vector<DataType> datatypes,
+                  const std::vector<DataType> &datatypes,
                   const std::vector<int> &columns_to_sort, int index) {
   if (index == columns_to_sort.size()) {
     return false;
